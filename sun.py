@@ -1,6 +1,6 @@
 """Sun position.
 
-The only thing the rest of the pipeline needs from the sky is a unit vector
+The only thing needed from the sky is a unit vector
 pointing at the sun, in the stadium's local frame:
 
     x = east, y = north, z = up   (UNITS: metres, origin at centre of the field)
