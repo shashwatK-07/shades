@@ -20,13 +20,13 @@ def test_naive_timestamps_rejected():
 
 
 def test_summer_noon_sun_is_high_and_south_in_northern_hemisphere():
-    times = sun.game_window("2024-06-21", "13:00", 0.0, "America/New_York")
+    times = sun.game_window("2024-06-21", "13:00", 0.0, "America/Los_Angeles")
     track = sun.sun_track(times, 37.7786, -122.3893)
     assert track.elevation_deg[0] > 70.0
     assert 150 < track.azimuth_deg[0] < 220  # roughly south
 
 
 def test_sun_is_below_horizon_at_midnight():
-    times = sun.game_window("2026-01-15", "00:30", 0.0, "America/New_York")
+    times = sun.game_window("2026-01-15", "00:30", 0.0, "America/Los_Angeles")
     track = sun.sun_track(times, 37.7786, -122.3893)
     assert not track.daylight[0]
