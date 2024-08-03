@@ -3,7 +3,7 @@
 Project on finding the best stadium seats with shade:
 
 Plan:
-- Using NOAA's calculator API perhaps
+- SWITCHED to pvlib 
 - Need solar position converting to a unit vector, with 
     x = east, 
     y = north, 
