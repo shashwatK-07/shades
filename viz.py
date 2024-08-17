@@ -62,6 +62,41 @@ def plot_bowl(
     return out_path
 
 
+def plot_decks(stadium, out_path: str, title: str | None = None):
+    """Debug helper: seats colored by deck, to sanity-check theta coverage
+    and gaps between decks (outfield notches, backstop, etc.) at a glance.
+    Decks with no seats (rows=0 occluders, e.g. a canopy) are skipped.
+    """
+    seats = stadium.seats()
+    deck_names = [d.name for d in stadium.decks if d.rows > 0]
+
+    fig, ax = plt.subplots(figsize=(9, 8))
+    cmap = plt.get_cmap("tab10")
+    plotted_any = False
+    for i, name in enumerate(deck_names):
+        mask = seats["deck"] == name
+        if not mask.any():
+            continue
+        pts = seats["points"][mask]
+        ax.scatter(
+            pts[:, 0], pts[:, 1],
+            s=4, linewidths=0, color=cmap(i % 10),
+            label=f"{name} (n={mask.sum()})",
+        )
+        plotted_any = True
+
+    ax.set_aspect("equal")
+    ax.set_xlabel("east (m)")
+    ax.set_ylabel("north (m)")
+    ax.set_title(title or f"{stadium.name} - seats by deck")
+    if plotted_any:
+        ax.legend(markerscale=4)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=140)
+    plt.close(fig)
+    return out_path
+
+
 def plot_sun_path(track, out_path: str, title: str = "sun path"):
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(track.times, track.elevation_deg, label="elevation")

@@ -1,0 +1,73 @@
+# A generic open-air stadium. Numbers are only estimates ofc, replace them
+# with measurements before you believe any output.
+#
+# Coordinate frame: x = east, y = north, z = up, metres, origin at the centre
+# of the field. theta is the parametric angle of the ellipse, measured
+# counter-clockwise from +x (east).
+#
+# Getting real numbers: Google Earth Pro's ruler for footprint and the
+# elevation profile for heights; staudum Wikipedia pages and architect press
+# releases (Populous, HOK) for deck heights; official seating charts for
+# where the decks start and stop.
+
+name: Example Park
+latitude: 37.7786
+longitude: -122.3893
+timezone: America/Los_Angeles
+elevation_m: 3.0
+
+decks:
+  # Lower bowl: wraps most of the way around, leaves an outfield gap.
+  - name: lower
+    inner_a: 95.0
+    inner_b: 78.0
+    inner_z: 1.0
+    outer_a: 130.0
+    outer_b: 112.0
+    outer_z: 13.0
+    rows: 30
+    theta_start_deg: -40.0
+    theta_end_deg: 250.0
+    n_theta: 200
+
+  # Upper deck: sits back and higher. Its front lip is what shades the back
+  # rows of the lower bowl in the afternoon -- usually the dominant effect.
+  - name: upper
+    inner_a: 122.0
+    inner_b: 104.0
+    inner_z: 24.0
+    outer_a: 152.0
+    outer_b: 134.0
+    outer_z: 44.0
+    rows: 24
+    theta_start_deg: 10.0
+    theta_end_deg: 210.0
+    n_theta: 160
+
+  # Outfield bleachers: low, exposed, no deck above them. The seats everyone
+  # regrets buying for a 1pm July game.
+  - name: bleachers
+    inner_a: 100.0
+    inner_b: 82.0
+    inner_z: 1.0
+    outer_a: 124.0
+    outer_b: 106.0
+    outer_z: 9.0
+    rows: 16
+    theta_start_deg: 255.0
+    theta_end_deg: 320.0
+    n_theta: 60
+
+  # Roof canopy over the upper deck: rows = 0 means "occluder only, nobody
+  # sits here". inner_z == outer_z makes it a flat horizontal overhang.
+  - name: canopy
+    inner_a: 118.0
+    inner_b: 100.0
+    inner_z: 52.0
+    outer_a: 156.0
+    outer_b: 138.0
+    outer_z: 52.0
+    rows: 0
+    theta_start_deg: 10.0
+    theta_end_deg: 210.0
+    n_theta: 160

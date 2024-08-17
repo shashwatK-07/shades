@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 
+import geometry
 import sun
 import viz
+
+EXAMPLE_PARK_YAML = Path(__file__).parent.parent / "example_park.yaml"
 
 
 def make_seats(n: int = 10) -> tuple[np.ndarray, np.ndarray]:
@@ -11,6 +16,28 @@ def make_seats(n: int = 10) -> tuple[np.ndarray, np.ndarray]:
     points = rng.uniform(-50, 50, size=(n, 3))
     values = rng.uniform(0.0, 1.0, size=n)
     return points, values
+
+
+def make_stadium_with_gap() -> geometry.Stadium:
+    lower = geometry.Deck(
+        name="lower", inner_a=95.0, inner_b=78.0, inner_z=1.0,
+        outer_a=130.0, outer_b=112.0, outer_z=13.0,
+        rows=10, theta_start_deg=-40.0, theta_end_deg=250.0, n_theta=60,
+    )
+    bleachers = geometry.Deck(
+        name="bleachers", inner_a=100.0, inner_b=82.0, inner_z=1.0,
+        outer_a=124.0, outer_b=106.0, outer_z=9.0,
+        rows=6, theta_start_deg=255.0, theta_end_deg=320.0, n_theta=20,
+    )
+    canopy = geometry.Deck(
+        name="canopy", inner_a=118.0, inner_b=100.0, inner_z=52.0,
+        outer_a=156.0, outer_b=138.0, outer_z=52.0,
+        rows=0, theta_start_deg=10.0, theta_end_deg=210.0, n_theta=60,
+    )
+    return geometry.Stadium(
+        name="Gap Test Park", latitude=37.7786, longitude=-122.3893,
+        timezone="America/Los_Angeles", decks=[lower, bleachers, canopy],
+    )
 
 
 def test_plot_bowl_writes_a_nonempty_file(tmp_path):
@@ -52,6 +79,66 @@ def test_plot_bowl_only_one_field_axis_given_skips_field_outline(tmp_path):
     out = tmp_path / "bowl_partial_field.png"
 
     viz.plot_bowl(points, values, "title", str(out), field_a=48.0, field_b=None)
+
+    assert out.exists()
+    assert out.stat().st_size > 0
+
+
+def test_plot_decks_writes_a_nonempty_file(tmp_path):
+    stadium = make_stadium_with_gap()
+    out = tmp_path / "decks.png"
+
+    result = viz.plot_decks(stadium, str(out))
+
+    assert result == str(out)
+    assert out.exists()
+    assert out.stat().st_size > 0
+
+
+def test_plot_decks_skips_pure_occluder_decks(tmp_path):
+    """canopy has rows=0; it should be left out of the legend/plot, not
+    crash on a lookup for seats that don't exist."""
+    stadium = make_stadium_with_gap()
+    out = tmp_path / "decks_with_occluder.png"
+
+    viz.plot_decks(stadium, str(out))
+
+    assert out.exists()
+    assert out.stat().st_size > 0
+
+
+def test_plot_decks_custom_title(tmp_path):
+    stadium = make_stadium_with_gap()
+    out = tmp_path / "decks_custom_title.png"
+
+    viz.plot_decks(stadium, str(out), title="custom title")
+
+    assert out.exists()
+
+
+def test_plot_decks_handles_stadium_with_no_seated_decks(tmp_path):
+    """A stadium made entirely of occluders (rows=0) shouldn't crash."""
+    canopy = geometry.Deck(
+        name="canopy", inner_a=10.0, inner_b=10.0, inner_z=5.0,
+        outer_a=15.0, outer_b=15.0, outer_z=5.0, rows=0,
+    )
+    stadium = geometry.Stadium(
+        name="Roof Only", latitude=0.0, longitude=0.0, timezone="UTC",
+        decks=[canopy],
+    )
+    out = tmp_path / "decks_empty.png"
+
+    viz.plot_decks(stadium, str(out))
+
+    assert out.exists()
+
+
+def test_plot_decks_on_example_park_yaml(tmp_path):
+    """Smoke test against the real example config with its outfield gap."""
+    stadium = geometry.Stadium.from_yaml(EXAMPLE_PARK_YAML)
+    out = tmp_path / "example_park_decks.png"
+
+    viz.plot_decks(stadium, str(out))
 
     assert out.exists()
     assert out.stat().st_size > 0

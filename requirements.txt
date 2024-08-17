@@ -1,0 +1,10 @@
+# updated 2024 with latest versions:
+
+numpy
+pandas
+matplotlib # soon
+pyyaml
+pvlib
+
+# Dev stuff:
+pytest
