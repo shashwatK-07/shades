@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 import geometry
 import occlusion
@@ -216,3 +218,40 @@ def test_shade_fraction_zero_total_weight_returns_all_shaded():
     weights = np.array([0.0, 0.0])
     frac = occlusion.shade_fraction(shaded, weights)
     assert np.array_equal(frac, np.ones(3))
+
+
+# --------------------------------------------------------------------------
+# occlusion: fast path vs oracle
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "elev_deg,azim_deg",
+    [(75.0, 180.0), (45.0, 220.0), (15.0, 265.0), (5.0, 285.0)],
+)
+def test_fast_path_matches_brute_force(elev_deg, azim_deg):
+    stadium = geometry.Stadium.from_yaml(EXAMPLE_PARK_YAML)
+    seats = stadium.seats()["points"]
+    tris = stadium.occluders()
+
+    # Subsample so the O(N*M) oracle finishes this decade.
+    rng = np.random.default_rng(0)
+    sub = seats[rng.choice(len(seats), 400, replace=False)]
+
+    a, g = np.radians(elev_deg), np.radians(azim_deg)
+    d = np.array([np.sin(g) * np.cos(a), np.cos(g) * np.cos(a), np.sin(a)])
+
+    t0 = time.perf_counter()
+    fast = occlusion.rays_hit_any(sub, d, tris)
+    t_fast = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    slow = occlusion.brute_force_hit(sub, d, tris)
+    t_slow = time.perf_counter() - t0
+
+    print(
+        f"elev={elev_deg:>4.0f} azim={azim_deg:>4.0f}: "
+        f"fast={t_fast:.4f}s slow={t_slow:.4f}s ({t_slow / max(t_fast, 1e-9):.1f}x)"
+    )
+
+    disagree = int((fast != slow).sum())
+    assert disagree == 0, f"{disagree}/{len(sub)} seats disagree at elev={elev_deg}"

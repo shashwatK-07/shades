@@ -146,6 +146,61 @@ def rays_hit_any(
     return hit
  
  
+def brute_force_hit(
+    origins: np.ndarray,
+    direction: np.ndarray,
+    triangles: np.ndarray,
+    eps: float = 1e-8,
+) -> np.ndarray:
+    """Reference oracle for `rays_hit_any`: brute-force Moller-Trumbore,
+    O(N*M) time and memory over every (ray, triangle) pair, no spatial
+    acceleration structure and no assumption about the sign of `direction`.
+
+    Exists only to check the shear+grid fast path above against something
+    simpler and harder to get subtly wrong -- too slow for real seat counts.
+
+    origins   : (N, 3)
+    direction : (3,) ray direction, any orientation
+    triangles : (M, 3, 3)
+
+    Returns (N,) bool. True = a triangle blocks that ray.
+    """
+    origins = np.asarray(origins, dtype=float)
+    direction = np.asarray(direction, dtype=float)
+    triangles = np.asarray(triangles, dtype=float)
+
+    if len(origins) == 0 or len(triangles) == 0:
+        return np.zeros(len(origins), dtype=bool)
+
+    # Nudge origins off the surface they sit on so a ray doesn't immediately
+    # re-hit the triangle (or deck) it was cast from.
+    o = origins + 1e-3 * direction
+
+    v0, v1, v2 = triangles[:, 0], triangles[:, 1], triangles[:, 2]  # (M, 3) each
+    edge1 = v1 - v0
+    edge2 = v2 - v0
+
+    h = np.cross(direction, edge2)  # (M, 3)
+    a = np.einsum("mi,mi->m", edge1, h)  # (M,)
+    parallel = np.abs(a) < eps
+    f = 1.0 / np.where(parallel, 1.0, a)  # dummy 1.0 for parallel triangles
+
+    s = o[:, None, :] - v0[None, :, :]  # (N, M, 3)
+    u = f[None, :] * np.einsum("nmi,mi->nm", s, h)  # (N, M)
+
+    q = np.cross(s, edge1[None, :, :])  # (N, M, 3)
+    v = f[None, :] * np.einsum("nmi,i->nm", q, direction)  # (N, M)
+    t = f[None, :] * np.einsum("nmi,mi->nm", q, edge2)  # (N, M)
+
+    hit = (
+        ~parallel[None, :]
+        & (u >= 0.0) & (u <= 1.0)
+        & (v >= 0.0) & (u + v <= 1.0)
+        & (t > eps)
+    )
+    return hit.any(axis=1)
+
+
 def shade_timeseries(
     seat_points: np.ndarray,
     sun_vectors: np.ndarray,
