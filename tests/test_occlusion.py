@@ -221,7 +221,7 @@ def test_shade_fraction_zero_total_weight_returns_all_shaded():
 
 
 # --------------------------------------------------------------------------
-# occlusion: fast path vs oracle
+# fast path vs oracle
 # --------------------------------------------------------------------------
 
 @pytest.mark.parametrize(
@@ -255,3 +255,52 @@ def test_fast_path_matches_brute_force(elev_deg, azim_deg):
 
     disagree = int((fast != slow).sum())
     assert disagree == 0, f"{disagree}/{len(sub)} seats disagree at elev={elev_deg}"
+
+
+# --------------------------------------------------------------------------
+# broad-phase grid: bucketing must be a pure accelerator, never change results
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("cell_size", [0.5, 5.0, 50.0, 1e6])
+def test_grid_resolution_does_not_change_results(cell_size):
+    """`cell_size` only controls how seats get bucketed into cells for the
+    broad phase -- from many tiny cells (cell_size=0.5, most seats/triangles
+    isolated into their own cell) down to one giant cell that swallows the
+    whole scene (cell_size=1e6, degenerating to test-everything-against-
+    everything). The final hit/miss per seat must be identical regardless,
+    since bucketing is only meant to skip triangles whose shadow can't
+    possibly reach a given cell -- it must never skip one that can."""
+    stadium = geometry.Stadium.from_yaml(EXAMPLE_PARK_YAML)
+    seats = stadium.seats()["points"]
+    tris = stadium.occluders()
+
+    rng = np.random.default_rng(1)
+    sub = seats[rng.choice(len(seats), 500, replace=False)]
+    direction = np.array([0.037, -0.258, 0.965])  # near-solar-noon, SF, July
+
+    default = occlusion.rays_hit_any(sub, direction, tris)
+    resized = occlusion.rays_hit_any(sub, direction, tris, cell_size=cell_size)
+
+    assert np.array_equal(resized, default)
+
+
+def test_seats_in_separate_shadow_footprints_do_not_cross_contaminate():
+    """Two triangles far apart in sheared space, each with its own cluster
+    of seats directly beneath it and nothing else nearby. Every seat must
+    register a hit only from the triangle actually above it -- confirms a
+    triangle's cell-range lookup doesn't spill into an unrelated cell."""
+    near_triangle = np.array([[-1.0, -1.0, 5.0], [1.0, -1.0, 5.0], [0.0, 1.0, 5.0]])
+    far_triangle = near_triangle + np.array([500.0, 500.0, 0.0])
+    triangles = np.stack([near_triangle, far_triangle])
+
+    origins = np.array(
+        [
+            [0.0, -0.3, 0.0],        # under near_triangle only
+            [500.0, 499.7, 0.0],     # under far_triangle only
+            [250.0, 250.0, 0.0],     # under neither
+        ]
+    )
+
+    result = occlusion.rays_hit_any(origins, UP, triangles, cell_size=2.0)
+
+    assert result.tolist() == [True, True, False]
