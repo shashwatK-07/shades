@@ -97,6 +97,47 @@ def plot_decks(stadium, out_path: str, title: str | None = None):
     return out_path
 
 
+def plot_time_offset_sweep(
+    offsets, errors, out_path: str, noise_floor_m: float | None = None,
+    title: str = "negative control: error vs timestamp offset",
+):
+    """The negative control. Want a clean V with its minimum at zero.
+
+    A minimum somewhere other than zero is a systematic timestamp bug (check
+    the timezone first -- an hour off is a DST slip). A curve that DOESN'T
+    rise at +-30 min means the metric isn't sensitive to what it claims to
+    measure, and the headline error is meaningless however small it is.
+    """
+    offsets = np.asarray(offsets, dtype=float)
+    errors = np.asarray(errors, dtype=float)
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.plot(offsets, errors, "-o", ms=4, color="#c2453a")
+    ax.axvline(0.0, color="k", linewidth=0.8, linestyle="--")
+
+    best = offsets[int(np.nanargmin(errors))]
+    ax.annotate(
+        f"min at {best:+.0f} min",
+        xy=(best, np.nanmin(errors)),
+        xytext=(0.02, 0.92), textcoords="axes fraction",
+        arrowprops={"arrowstyle": "->", "linewidth": 0.8},
+    )
+    if noise_floor_m is not None:
+        ax.axhline(noise_floor_m, color="#2b7a4b", linewidth=1.0, linestyle=":")
+        ax.text(
+            offsets.min(), noise_floor_m, f" noise floor ~{noise_floor_m:.2f} m",
+            va="bottom", ha="left", fontsize=8, color="#2b7a4b",
+        )
+
+    ax.set_xlabel("timestamp offset (minutes)")
+    ax.set_ylabel("symmetric shadow-line distance (m)")
+    ax.set_title(title)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=140)
+    plt.close(fig)
+    return out_path
+
+
 def plot_sun_path(track, out_path: str, title: str = "sun path"):
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(track.times, track.elevation_deg, label="elevation")

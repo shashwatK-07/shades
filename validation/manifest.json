@@ -1,0 +1,11 @@
+[
+  {
+    "id": "0000-EXAMPLE",
+    "venue": "example_park",
+    "url": "https://example.com/replace-me.jpg",
+    "timestamp_utc": "2024-07-04T20:30:00Z",
+    "timestamp_local": "2024-07-04T13:30:00-07:00",
+    "source": "example -- delete this entry once you have a real photo",
+    "notes": "timestamp_local is redundant on purpose: write both and check they agree, since a DST slip is a ~15 deg azimuth error that reads as a modelling bug"
+  }
+]

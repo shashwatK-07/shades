@@ -1,0 +1,14 @@
+# Validation photos stay OUT of git -- the manifest holds URLs, and the
+# annotations hold our own clicks. Both of those are versioned; the
+# copyrighted wire photos they point at are not.
+validation/images/
+validation/**/*.jpg
+validation/**/*.jpeg
+validation/**/*.png
+
+# run_game.py output
+out/
+
+__pycache__/
+*.pyc
+.pytest_cache/

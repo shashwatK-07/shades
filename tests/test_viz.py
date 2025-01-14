@@ -144,6 +144,28 @@ def test_plot_decks_on_example_park_yaml(tmp_path):
     assert out.stat().st_size > 0
 
 
+def test_plot_time_offset_sweep_writes_a_nonempty_file(tmp_path):
+    offsets = np.arange(-60, 61, 15)
+    errors = np.abs(offsets) * 0.3  # a clean synthetic V
+    out = tmp_path / "sweep.png"
+
+    result = viz.plot_time_offset_sweep(offsets, errors, str(out), noise_floor_m=0.6)
+
+    assert result == str(out)
+    assert out.exists()
+    assert out.stat().st_size > 0
+
+
+def test_plot_time_offset_sweep_without_noise_floor(tmp_path):
+    offsets = np.array([-30.0, 0.0, 30.0])
+    errors = np.array([9.0, 0.1, 8.0])
+    out = tmp_path / "sweep_no_floor.png"
+
+    viz.plot_time_offset_sweep(offsets, errors, str(out))
+
+    assert out.exists()
+
+
 def test_plot_sun_path_writes_a_nonempty_file(tmp_path):
     times = sun.game_window("2024-06-21", "10:00", 2.0, "America/New_York")
     track = sun.sun_track(times, 40.7128, -74.0060)
