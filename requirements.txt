@@ -1,10 +1,16 @@
-# updated 2024 with latest versions:
-
 numpy
 pandas
-matplotlib # soon
 pyyaml
-pvlib
+pvlib          # solar position (NREL SPA) and clear-sky irradiance
+matplotlib     # viz.py plots, and the click handler in scripts/annotate.py
+contourpy      # shadow-boundary extraction in photo_validation.py
+               # ships as a matplotlib dependency, listed because we import it directly
 
-# Dev stuff:
+# Dev
 pytest
+
+# Optional. export.py falls back to the numpy path in occlusion.py without these.
+# trimesh    # alternative ray backend, drop-in for occlusion.rays_hit_any
+# embreex    # makes that backend ~100x faster; WITHOUT it trimesh is slower
+             # than the numpy path, so check the import actually succeeded
+             # before trusting a benchmark
